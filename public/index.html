@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitHub 加速代理 · CF Proxy</title>
+<style>
+  :root {
+    --bg: #f7f7f7;
+    --card: #ffffff;
+    --text: #111111;
+    --muted: #777777;
+    --line: #e7e7e7;
+    --ink: #111111;
+    --ink-hover: #333333;
+    --chip: #f2f2f2;
+    --r-lg: 22px;
+    --r-md: 14px;
+    --r-sm: 10px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 48px 20px 72px; }
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 30px; }
+  .logo {
+    width: 46px; height: 46px; border-radius: 15px; flex: none;
+    background: var(--ink); display: grid; place-items: center;
+  }
+  h1 { font-size: 23px; margin: 0; letter-spacing: -.4px; line-height: 1.3; font-weight: 700; }
+  .sub { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+  .badge {
+    margin-left: auto; font-size: 12px; color: var(--text);
+    background: var(--card); border: 1px solid var(--line);
+    padding: 5px 12px; border-radius: 999px; white-space: nowrap;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg);
+    padding: 26px 28px; margin-bottom: 18px;
+  }
+  h2 { font-size: 15px; margin: 0 0 18px; display: flex; align-items: center; gap: 9px; font-weight: 700; }
+  h2::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink); }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+  .field { display: flex; gap: 10px; flex-wrap: wrap; }
+  input[type=text] {
+    flex: 1 1 260px; min-width: 0; height: 44px; padding: 0 14px;
+    border: 1px solid #dedede; border-radius: var(--r-md); color: var(--text);
+    background: #fff; outline: none; font: inherit; font-size: 14px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input[type=text]::placeholder { color: #aaa; }
+  input[type=text]:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(17, 17, 17, .07); }
+  button {
+    height: 44px; padding: 0 20px; border: 1px solid var(--ink); border-radius: var(--r-md); cursor: pointer;
+    background: var(--ink); color: #fff; font: inherit; font-size: 14px; font-weight: 600;
+    transition: background .15s, border-color .15s, transform .1s;
+  }
+  button:hover { background: var(--ink-hover); border-color: var(--ink-hover); }
+  button:active { transform: translateY(1px); }
+  button.ghost { background: #fff; color: var(--text); border-color: var(--line); }
+  button.ghost:hover { background: var(--chip); border-color: #d4d4d4; }
+  .base-row { margin-bottom: 18px; }
+  .base-row input[type=text] { width: 100%; }
+  .result { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .result .row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .msg { font-size: 13px; margin: 14px 0 0; min-height: 20px; color: var(--muted); }
+  .msg.ok { color: var(--text); }
+  .msg.ok::before { content: "●"; font-size: 9px; vertical-align: 2px; margin-right: 7px; }
+  .msg.err { color: var(--text); }
+  .msg.err::before { content: "○"; font-size: 11px; vertical-align: 1px; margin-right: 7px; }
+  .links { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+  .link {
+    text-align: left; height: auto; padding: 14px 16px; background: #fff;
+    border: 1px solid var(--line); border-radius: var(--r-md); color: var(--text); font-weight: 600;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .link:hover { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .link small { display: block; color: var(--muted); font-size: 11px; font-weight: 400; margin-top: 3px; }
+  .link:hover small { color: #bdbdbd; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 30px; }
+  @media (max-width: 560px) {
+    .wrap { padding: 30px 14px 52px; }
+    header { gap: 12px; }
+    .badge { display: none; }
+    .card { padding: 20px 16px; border-radius: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 18h12a4 4 0 0 0 .4-7.98A6 6 0 0 0 6.6 8.2 4.9 4.9 0 0 0 6 18z"/>
+        <path d="M12 9v6m0 0-2.5-2.5M12 15l2.5-2.5"/>
+      </svg>
+    </div>
+    <div>
+      <h1>GitHub 加速代理</h1>
+      <div class="sub">基于 Cloudflare Workers 的反向代理，边缘缓存加速访问</div>
+    </div>
+    <span class="badge">Cloudflare Workers</span>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>链接转换</h2>
+      <div class="base-row">
+        <label for="base">代理服务地址（部署后自动生成，也可手动修改）</label>
+        <input type="text" id="base" spellcheck="false" placeholder="https://你的域名.workers.dev">
+      </div>
+      <label for="source">GitHub 链接</label>
+      <div class="field">
+        <input type="text" id="source" spellcheck="false" placeholder="例如 https://github.com/torvalds/linux 或 torvalds/linux">
+        <button id="convertBtn">生成加速链接</button>
+      </div>
+      <div class="result" id="resultBox" hidden>
+        <label for="result">加速后的链接（首次下载建议先点「预热缓存」）</label>
+        <div class="row">
+          <input type="text" id="result" readonly>
+          <button id="jumpBtn">一键跳转</button>
+          <button class="ghost" id="copyBtn">复制</button>
+          <button class="ghost" id="warmBtn">预热缓存</button>
+        </div>
+        <label for="clone">对应的 git clone 命令</label>
+        <div class="row">
+          <input type="text" id="clone" readonly>
+          <button class="ghost" id="copyCloneBtn">复制</button>
+        </div>
+      </div>
+      <p class="msg" id="msg"></p>
+    </section>
+
+    <section class="card">
+      <h2>快捷入口</h2>
+      <div class="links">
+        <button class="link" data-url="https://github.com/trending">GitHub Trending<small>热门仓库</small></button>
+        <button class="link" data-url="https://github.com/torvalds/linux">Linux 内核仓库<small>页面浏览测试</small></button>
+        <button class="link" data-url="https://raw.githubusercontent.com/torvalds/linux/master/README">Raw 文件<small>raw.githubusercontent.com</small></button>
+        <button class="link" data-url="https://api.github.com/repos/torvalds/linux">GitHub API<small>api.github.com</small></button>
+        <button class="link" data-url="https://codeload.github.com/torvalds/linux/zip/refs/heads/master">源码压缩包<small>codeload.github.com</small></button>
+        <button class="link" data-url="https://github.com/microsoft/vscode/releases">Release 页面<small>大文件下载</small></button>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>Cloudflare Workers · GitHub Reverse Proxy · 请遵守 GitHub 服务条款，勿用于滥用流量</footer>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var baseInput = $('base');
+  var sourceInput = $('source');
+  var resultBox = $('resultBox');
+  var msg = $('msg');
+  var currentTarget = null;
+
+  var ALLOWED = [
+    'github.com', 'www.github.com', 'raw.githubusercontent.com', 'api.github.com',
+    'codeload.github.com', 'objects.githubusercontent.com', 'objects-origin.githubusercontent.com',
+    'avatars.githubusercontent.com', 'gist.github.com', 'gist.githubusercontent.com',
+    'githubusercontent.com', 'user-images.githubusercontent.com', 'camo.githubusercontent.com',
+    'private-user-images.githubusercontent.com', 'secured-user-images.githubusercontent.com',
+    'github.githubassets.com', 'github.io',
+    'release-assets.githubusercontent.com', 'github-releases.githubusercontent.com',
+    'assets.githubusercontent.com'
+  ];
+
+  if (location.protocol === 'http:' || location.protocol === 'https:') {
+    baseInput.value = location.origin;
+  }
+
+  function base() { return baseInput.value.trim().replace(/\/+$/, ''); }
+
+  function setMsg(text, isErr) {
+    msg.textContent = text;
+    msg.className = 'msg ' + (isErr ? 'err' : 'ok');
+  }
+
+  function isAllowed(host) {
+    host = (host || '').toLowerCase();
+    return ALLOWED.indexOf(host) !== -1 || /\.github\.io$/.test(host);
+  }
+
+  function normalize(raw) {
+    raw = (raw || '').trim();
+    if (!raw) return null;
+    var m = raw.match(/^git@github\.com:(.+)$/i);
+    if (m) return { host: 'github.com', path: '/' + m[1].replace(/^\/+/, '') };
+    if (/^https?:\/\//i.test(raw)) {
+      try {
+        var u = new URL(raw);
+        if (!isAllowed(u.hostname)) return null;
+        return { host: u.hostname, path: u.pathname + u.search };
+      } catch (e) { return null; }
+    }
+    var bare = raw.replace(/^\/+/, '');
+    if (/^[\w.-]+\.(com|io)(\/|$)/i.test(bare)) {
+      var host = bare.split('/')[0].toLowerCase();
+      if (!isAllowed(host)) return null;
+      return { host: host, path: bare.slice(host.length) || '/' };
+    }
+    if (/^[\w.-]+\/[\w.-]+/.test(bare)) return { host: 'github.com', path: '/' + bare };
+    return null;
+  }
+
+  function render() {
+    var b = base();
+    var n = normalize(sourceInput.value);
+    if (!b) return setMsg('请先填写代理服务地址', true);
+    if (!n) return setMsg('请输入有效的 GitHub 链接（或 user/repo）', true);
+    currentTarget = 'https://' + n.host + n.path;
+    $('result').value = b + '/' + currentTarget;
+
+    var cloneUrl;
+    var seg = n.path.replace(/^\//, '').split('/').filter(Boolean);
+    if (n.host === 'github.com' && seg.length >= 2) {
+      cloneUrl = 'https://github.com/' + seg[0] + '/' + seg[1].replace(/\.git$/, '') + '.git';
+    } else {
+      cloneUrl = 'https://' + n.host + n.path;
+    }
+    $('clone').value = 'git clone ' + b + '/' + cloneUrl;
+    resultBox.hidden = false;
+    setMsg('已生成，复制后即可使用');
+  }
+
+  function copy(text, btn) {
+    var fallback = function () {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+    };
+    var done = function () {
+      var old = btn.textContent;
+      btn.textContent = '已复制';
+      setTimeout(function () { btn.textContent = old; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallback(); done(); });
+    } else { fallback(); done(); }
+  }
+
+  function jump() {
+    var url = $('result').value.trim();
+    if (!url || !currentTarget) return setMsg('请先生成加速链接', true);
+    window.open(url, '_blank', 'noopener');
+  }
+
+  function isDownload(url) {
+    try {
+      var u = new URL(url);
+      var host = u.hostname.toLowerCase();
+      if (host === 'codeload.github.com' || host === 'objects.githubusercontent.com' ||
+          host === 'objects-origin.githubusercontent.com' ||
+          host === 'release-assets.githubusercontent.com' ||
+          host === 'github-releases.githubusercontent.com' ||
+          host === 'assets.githubusercontent.com') return true;
+      return /\/releases\/(?:latest\/)?download\//i.test(u.pathname) ||
+             /\.(zip|tar|gz|bz2|xz|7z|dmg|exe|deb|rpm|whl|pdf)$/i.test(u.pathname);
+    } catch (e) { return false; }
+  }
+
+  function warmCache(btn) {
+    var target = currentTarget;
+    if (!target) return setMsg('请先生成加速链接', true);
+    if (!isDownload(target)) return setMsg('该链接不是下载资源，无需预热', true);
+    var old = btn.textContent;
+    btn.textContent = '预热中…';
+    btn.disabled = true;
+    // 走专用接口：整份文件写入边缘缓存后才返回，避免"刚预热就下载"仍然 MISS
+    var endpoint = base() + '/__warm?url=' + encodeURIComponent(target);
+    fetch(endpoint, { cache: 'no-store' })
+      .then(function (r) {
+        return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+      })
+      .then(function (out) {
+        if (!out.ok || !out.data.ok) throw new Error(out.data.error || '预热失败');
+        var mb = (out.data.bytes / 1048576).toFixed(1);
+        var hit = out.data.cache === 'HIT' ? '（边缘缓存 HIT）' : '';
+        setMsg('预热完成：' + mb + ' MB' + hit + '，现在下载会优先命中边缘缓存');
+      })
+      .catch(function (e) {
+        setMsg('预热未完成（' + e.message + '），仍可直接下载', true);
+      })
+      .then(function () { btn.textContent = old; btn.disabled = false; });
+  }
+
+  $('convertBtn').addEventListener('click', render);
+  sourceInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') render(); });
+  $('jumpBtn').addEventListener('click', function () { jump(); });
+  $('copyBtn').addEventListener('click', function () { copy($('result').value, this); });
+  $('warmBtn').addEventListener('click', function () { warmCache(this); });
+  $('copyCloneBtn').addEventListener('click', function () { copy($('clone').value, this); });
+
+  var links = document.querySelectorAll('.link[data-url]');
+  for (var i = 0; i < links.length; i++) {
+    links[i].addEventListener('click', function () {
+      var b = base();
+      if (!b) return setMsg('请先填写代理服务地址', true);
+      window.open(b + '/' + this.getAttribute('data-url'), '_blank', 'noopener');
+    });
+  }
+})();
+</script>
+</body>
+</html>
