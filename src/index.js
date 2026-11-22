@@ -45,6 +45,9 @@ const ALLOWED_HOSTS = new Set([
   "release-assets.githubusercontent.com",
   "github-releases.githubusercontent.com",
   "assets.githubusercontent.com",
+  "zetai.site",
+  "koomer.site",
+  "zetechs.site",
 ]);
 const HOST_LIST = Array.from(ALLOWED_HOSTS).sort((a, b) => b.length - a.length);
 
